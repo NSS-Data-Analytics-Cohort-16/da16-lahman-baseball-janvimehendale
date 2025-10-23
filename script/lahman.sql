@@ -312,19 +312,34 @@ AND lgid = 'AL'
 
 SELECT
 	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	--CASE 
-	--	WHEN lgid = 'AL' THEN 'won_for_AL'
-		--WHEN lgid = 'NL' THEN 'won_for_NL'
-		--END AS league,
-		a.yearid,
-		a.lgid
+	a.yearid AS year,
+	a.lgid AS league,
+	(SELECT
+		a1.yearid AS year,
+		a1.lgid AS league
+		FROM awardsmanagers a1
+	WHERE a1.awardid = 'TSN Manager of the Year'
+	AND a1.lgid IS NOT NULL
+	AND a1.lgid = 'NL') 
 FROM awardsmanagers a
 INNER JOIN people p USING (playerid)
-WHERE awardid = 'TSN Manager of the Year'
+INNER JOIN awardsmanagers a1 USING (playerid)
+WHERE a.awardid = 'TSN Manager of the Year'
 AND a.lgid IS NOT NULL
-AND a.lgid = 'AL'---NEED TO FIND HOW TO COMPARE BOTH
-AND a.lgid = 'NL'
-GROUP BY a.lgid, full_name, p.namefirst, p.namelast, a.yearid
+AND a.lgid = 'AL' 
+
+
+
+UNION
+SELECT
+	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
+	a1.yearid AS year,
+	a1.lgid AS league
+FROM awardsmanagers a1
+INNER JOIN people p USING (playerid)
+WHERE a1.awardid = 'TSN Manager of the Year'
+AND a1.lgid IS NOT NULL
+AND a1.lgid = 'NL' --GROUP BY a.lgid, full_name, p.namefirst, p.namelast, a.yearid
 ORDER BY full_name;
 
 --------------------------------------------------------------------------------------------------------
