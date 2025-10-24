@@ -3,6 +3,9 @@
 -- 1. What range of years for baseball games played does the provided database cover? 
 --range of years - appearances
 
+----------------------------------------------------------------------------
+----Checking appearances table
+----------------------------------------------------------------------------
 
 SELECT
 	*	
@@ -13,29 +16,25 @@ SELECT
 	DISTINCT yearid
 FROM appearances
 GROUP BY yearid;
-
+----------------------------------------------------------------------------
+-------------------1. range of years --1871 to 2016
+----------------------------------------------------------------------------
 SELECT
 	MIN(yearid) AS min,--1871
 	MAX(yearid) AS max --2016
 FROM appearances
 LIMIT 1;
 --1871 to 2016
---------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------
 -- 2. Find the name and height of the shortest player in the database. How many games did he play in? 
 --What is the name of the team for which he played?
    
 --name and height - people
 -- no of games - appearances
 --team name - teams
-
-SELECT
-	* 
-FROM people
-WHERE namefirst ILIKE '%Eddie%'
-AND namelast ILIKE '%Gaedel%'
-LIMIT 5;
-
---Find shortest player - "Eddie"	"Gaedel"	43 "gaedeed01"
+----------------------------------------------------------------------------
+--2. Find shortest player - "Eddie"	"Gaedel"	43 "gaedeed01"
+----------------------------------------------------------------------------
 SELECT 
 	--p.playerid,
 	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
@@ -65,55 +64,76 @@ ORDER by height
 			-- schoolid - collegeplaying
 -- league name - homegames 
 ---NEED HELP
+----------------------------------------------------------------------------
+---List of players and salary played at Vanderbilt-----
+----------------------------------------------------------------------------
+SELECT DISTINCT schoolname, schoolid FROM schools ORDER BY schoolname DESC;
+----------------------------------------------------------------------------
 
 SELECT
-	DISTINCT league,
-	games
-FROM homegames;
-
-SELECT
-	c.playerid, c.schoolid, s.salary, s.lgid
+	c.playerid,
+	c.schoolid,
+	SUM(s.salary)::NUMERIC::MONEY AS total_salary,
+	s.lgid AS league
 FROM collegeplaying c
-INNER JOIn salaries s USING (playerid)
+INNER JOIN salaries s USING (playerid)
 WHERE schoolid = 'vandy'
-
-SELECT * FROM salaries
-
-
-SELECT
-	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
-	SUM(sal.salary::NUMERIC::MONEY) AS total_salary,
-	a.lgid
-	--(SELECT 
-		--SUM(sal.salary::NUMERIC::MONEY) AS total_salary,
-	 	--sal.lgid 
-		 --FROM salaries sal
-		--GROUP BY sal.lgid)
-FROM people p
-INNER JOIN collegeplaying c USING (playerid)
-INNER JOIN schools s ON s.schoolid = c.schoolid
-INNER JOIN salaries sal USING (playerid)
-INNER JOIN appearances a USING (playerid)
---INNER JOIN homegames h ON h.league = a.lgid 
---INNER JOIN teams t ON t.lgid = a.lgid 
---INNER JOIN managers m ON m.lgid = a.lgid 
-WHERE s.schoolname ILIKE '%VANDERBILT%'
---AND UPPER(a.lgid) IN ('AA', 'UA', 'PL', 'FL')
-GROUP BY full_name, a.lgid	 
+GROUP BY c.playerid,
+	c.schoolid,
+	s.lgid
 ORDER BY total_salary DESC;
 
-SELECT playerid, lgid FROM appearances
+----------------------------------------------------------------------------
+---List of players with name and salary played at Vanderbilt-----
+----------------------------------------------------------------------------
+
+SELECT
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name, 
+	SUM(s.salary)::NUMERIC::MONEY AS total_salary
+FROM collegeplaying c
+INNER JOIN salaries s USING (playerid)
 INNER JOIN people p USING (playerid)
+WHERE schoolid = 'vandy'
+GROUP BY full_name
+ORDER BY total_salary DESC;
+	
 
-WHERE lgid IN ('AA', 'UA', 'PL', 'FL')
+----------------------------------------------------------------------------
+-----checking data from salaries table for major leagues ---none found
+----------------------------------------------------------------------------
 
---------------------------------------------------------------------------------------------------------
+SELECT * FROM salaries
+WHERE lgid IN ('AA', 'UA', 'PL', 'FL');
+
+----------------------------------------------------------------------------
+---List of players name, salary who played at Vanderbilt--subquery IN WHERE clause
+----------------------------------------------------------------------------
+SELECT
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name, 
+--	(SELECT CONCAT(p.namefirst, ' ', p.namelast)
+	--	FROM people
+		--WHERE p.playerid = c.playerid)AS full_name, --ERROR:  more than one row returned by a subquery used as an expression 
+	SUM(s.salary::NUMERIC::MONEY) AS total_salary
+FROM people p
+INNER JOIN salaries s USING (playerid)
+WHERE p.playerid IN 
+	(SELECT c.playerid
+	FROM collegeplaying c 
+	WHERE schoolid = 'vandy' 
+	GROUP BY c.playerid
+	)
+GROUP BY full_name 
+ORDER BY total_salary DESC;
+-------------------------------------------------------------------------------------------------------
 -- 4. Using the fielding table, group players into three groups based on their position: label players
 --with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and 
 --those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these 
 --three groups in 2016.
 --fielding position
 
+----------------------------------------------------------------------------
+--Categorizing the positions
+----------------------------------------------------------------------------
 SELECT 
 CASE WHEN pos = 'OF' THEN 'Outfield'
 	 WHEN pos IN ('P', 'C') THEN 'Battery'
@@ -129,6 +149,10 @@ GROUP BY position
    
 --avg(strikeouts) decade 1920 onwards, 
 --avg(homeruns)
+
+----------------------------------------------------------------------------
+---Calculating avg strikeouts and homeruns
+----------------------------------------------------------------------------
 
 SELECT
 	yearid/10*10 AS decade,
@@ -148,6 +172,10 @@ ORDER BY decade--pattern - avg strikeouts increased every decade except 1970 whe
 --playerid/ name - 2016  
 --stealing bases >20
 --percentage
+
+----------------------------------------------------------------------------
+----List of players with stolen base and attempts
+----------------------------------------------------------------------------
 
 SELECT
 	--(SELECT CONCAT(p.namefirst, ' ', p.namelast)AS full_name
@@ -184,7 +212,9 @@ FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
 GROUP BY teamid, yearid;
 
+----------------------------------------------------------------------------
 --largest number of wins for a team that did not win the world series
+----------------------------------------------------------------------------
 WITH lost_ws AS(
 	SELECT teamid,
 	yearid,
@@ -199,7 +229,9 @@ GROUP BY teamid, yearid
 --ORDER BY win DESC
 ), --ATL 17
 
+----------------------------------------------------------------------------
 --smallest number of wins for a team that did win the world series
+----------------------------------------------------------------------------
 won_ws AS(
 	SELECT teamid,
 	yearid,
@@ -214,7 +246,9 @@ GROUP BY teamid, yearid
 --ORDER BY win --ARI	1 (total 7 with 1 win)
 )
 
+----------------------------------------------------------------------------
 -- most wins including the world series
+----------------------------------------------------------------------------
 --won_all AS(
 --	SELECT teamid,
 	--COUNT(*)FILTER (
@@ -256,34 +290,17 @@ SELECT
 	--(SELECT park_name FROM parks),
 	p.park_name,
 	h.attendance,
-	h.team,
---	t.name,
+	t.name,
 	h.games,
 	h.attendance/ h.games AS attendance_per_game
 FROM homegames h
 INNER JOIN parks p ON p.park = h.park
---INNER JOIN teams t ON t.teamid = h.team --getting same record 5 times 
-WHERE year = 2016
+INNER JOIN teams t ON t.teamidlahman45 = h.team AND t.yearid = h.year
+WHERE h.year = 2016
+AND games >=10
 ORDER BY attendance_per_game DESC
-LIMIT 5;
-
-
-SELECT 
-	--(SELECT park_name FROM parks),
-	p.park_name,
-	h.attendance,
-	h.team,
---	t.name,
-	h.games,
-	h.attendance/ h.games AS attendance_per_game
-FROM homegames h
-INNER JOIN parks p ON p.park = h.park
---INNER JOIN teams t ON t.teamid = h.team
-WHERE year = 2016
-ORDER BY attendance_per_game 
-LIMIT 5;
-
---------------------------------------------------------------------------------------------------------
+LIMIT 5
+------------------------------------------------------------------------------------------------------
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and
 --the American League (AL)? Give their full name and the teams that they were managing when they won 
 --the award.
@@ -293,21 +310,22 @@ LIMIT 5;
 --NL and AL
 SELECT
 	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a1.lgid,
-	a1.yearid
-FROM awardsmanagers a1
+	a.lgid AS league,
+	a.yearid AS year
+FROM awardsmanagers a
 INNER JOIN people p USING (playerid)
-WHERE awardid = 'TSN Manager of the Year'
-AND lgid = 'NL'
-INTERSECT--DIDN'T WORK
+WHERE a.awardid = 'TSN Manager of the Year'
+AND lgid IN ('AL')
+UNION --INTERSECT DIDN'T WORK
 SELECT
 	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a2.lgid,
-	a2.yearid
-FROM awardsmanagers a2
+	a1.lgid AS league,
+	a1.yearid AS year
+FROM awardsmanagers a1
 INNER JOIN people p USING (playerid)
-WHERE awardid = 'TSN Manager of the Year'
-AND lgid = 'AL'
+WHERE a1.awardid = 'TSN Manager of the Year'
+AND lgid IN ('NL')
+
 
 
 SELECT
@@ -329,23 +347,56 @@ AND a.lgid IS NOT NULL
 AND a.lgid = 'AL' 
 
 
-
-UNION
+WITH league AS(
 SELECT
-	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a1.yearid AS year,
-	a1.lgid AS league
-FROM awardsmanagers a1
-INNER JOIN people p USING (playerid)
-WHERE a1.awardid = 'TSN Manager of the Year'
-AND a1.lgid IS NOT NULL
-AND a1.lgid = 'NL' --GROUP BY a.lgid, full_name, p.namefirst, p.namelast, a.yearid
-ORDER BY full_name;
+		a.playerid,
+		CONCAT(p.namefirst,' ', p.namelast) AS full_name,
+		CASE WHEN a.lgid = 'AL' THEN a.yearid
+			 END AS AL,
+		CASE WHEN a.lgid = 'NL' THEN a.yearid
+			 END AS NL
+		FROM awardsmanagers a
+		INNER JOIN people p USING (playerid)
+		WHERE a.awardid = 'TSN Manager of the Year'
+		AND a.lgid IS NOT NULL
+)
+
+SELECT
+	full_name,
+	al,
+	nl
+FROM league 
+WHERE al IS NOT NULL
+OR nl IS NOT NULL
+ORDER BY full_name
 
 --------------------------------------------------------------------------------------------------------
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players
 --who have played in the league for at least 10 years, and who hit at least one home run in 2016. 
 --Report the players' first and last names and the number of home runs they hit in 2016.
+
+--first name - people
+--lastname- people
+-- yearid = 2016
+--MAX(homeruns)--batting
+--years >10
+
+SELECT 
+	playerid,
+	MAX(hr) >
+		(SELECT 
+			SUM(hr)
+			FROM ??????)
+FROM batting
+WHERE yearid = 2016
+AND hr > 1
+AND MAX(yearid)-MIN(yearid)>10
+GROUP BY playerid
+
+SELECT * FROM homegames
+SELECT * FROM appearances
+SELECT * FROM teams
+
 
 
 --------------------------------------------------------------------------------------------------------
