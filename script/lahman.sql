@@ -374,22 +374,55 @@ ORDER by full_name
 -- yearid = 2016
 --MAX(homeruns)--batting
 --years >10
+---------------------------------------------------------------------------------
+--  List of players who scored atleast 1 hr in 2016
+---------------------------------------------------------------------------------
+SELECT 
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
+	b.hr
+FROM batting b
+INNER JOIN people p USING (playerid)
+WHERE  hr> 0
+AND yearid = 2016
+GROUP BY playerid, full_name, hr, b.yearid
+
+---------------------------------------------------------------------------------
+--  List of players who scored atleast 1 hr overall, played more than 10 years
+---------------------------------------------------------------------------------
+WITH hr_all AS(
+SELECT-- List of players who scored atleast 1 hr overall career
+	playerid,
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
+	SUM(hr)AS total_runs,
+	MIN(b.yearid) AS min_year,
+	MAX(b.yearid) AS max_year
+FROM batting b
+INNER JOIN people p USING (playerid)
+WHERE  hr> 0
+GROUP BY full_name, playerid
+),
+hr_2016 AS(
+SELECT 
+	full_name,
+	playerid,
+	hr
+FROM batting
+WHERE hr> 0
+AND yearid = 2016
+GROUP BY playerid, hr, full_name
+)
 
 SELECT 
-	playerid,
-	MAX(hr) >
-		(SELECT 
-			SUM(hr)
-			FROM ??????)
-FROM batting
-WHERE yearid = 2016
-AND hr > 1
-AND MAX(yearid)-MIN(yearid)>10
-GROUP BY playerid
+	hr_all.full_name,
+	hr_all.total_runs,
+	max_year - min_year AS years_played
+FROM hr_all
+INNER JOIN hr_2016 USING (playerid)
+WHERE max_year - min_year > 10
 
-SELECT * FROM homegames
-SELECT * FROM appearances
-SELECT * FROM teams
+	
+
+
 
 
 --------------------------------------------------------------------------------------------------------
