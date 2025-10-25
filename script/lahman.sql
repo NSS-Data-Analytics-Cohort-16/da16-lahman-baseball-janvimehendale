@@ -201,81 +201,114 @@ ORDER BY percentage DESC
 --yearid 1970 -2016
 --count(max(win))
 --count(min(win))
+----------------------------------------------------------------------------
+----Max wins from 1970-2016 in descending order - 1294 rows - Most won -116
+----------------------------------------------------------------------------
 
 SELECT
-	teamid,
-	COUNT(divwin) AS division_winner,
-	COUNT(wcwin) AS wildcard_winner,
-	COUNT(lgwin) AS league_winner,
-	COUNT(wswin) AS worldseries_winner
-FROM teams
-WHERE yearid BETWEEN 1970 AND 2016
-GROUP BY teamid, yearid;
-
-----------------------------------------------------------------------------
---largest number of wins for a team that did not win the world series
-----------------------------------------------------------------------------
-WITH lost_ws AS(
-	SELECT teamid,
 	yearid,
-	COUNT(*)FILTER (
-				WHERE divwin = 'Y'
-				OR wcwin = 'Y'
-				OR lgwin = 'Y') AS win
+	w AS wins
 FROM teams
-	WHERE yearid BETWEEN 1970 AND 2016
-	AND wswin = 'N'
-GROUP BY teamid, yearid
---ORDER BY win DESC
-), --ATL 17
+WHERE yearid >= 1970
+GROUP BY yearid, w, teamid
+ORDER BY wins DESC 
 
 ----------------------------------------------------------------------------
---smallest number of wins for a team that did win the world series
+--largest number of wins for a team that did not win the world series 
+-- 116 -(with and without problem year)
 ----------------------------------------------------------------------------
-won_ws AS(
-	SELECT teamid,
+SELECT
 	yearid,
-	COUNT(*)FILTER (
-				WHERE divwin = 'Y'
-				OR wcwin = 'Y'
-				OR lgwin = 'Y') AS win
+	MAX(w) AS wins
 FROM teams
-	WHERE yearid BETWEEN 1970 AND 2016
-	AND wswin = 'Y'
-GROUP BY teamid, yearid
---ORDER BY win --ARI	1 (total 7 with 1 win)
-)
+WHERE yearid >= 1970
+AND wswin = 'N'
+--AND yearid NOT IN (1981)
+GROUP BY yearid
+ORDER BY wins DESC 
 
 ----------------------------------------------------------------------------
--- most wins including the world series
+--smallest number of wins for a team that did win the world series 
+-- 63 wins with problem year
+-- 83 wins without problem year
 ----------------------------------------------------------------------------
---won_all AS(
---	SELECT teamid,
-	--COUNT(*)FILTER (
-		--		WHERE divwin = 'Y'
-			--	OR wcwin = 'Y'
-			--	OR lgwin = 'Y') AS win
---FROM teams
---	WHERE yearid BETWEEN 1970 AND 2016
---	AND wswin = 'Y'
---GROUP BY lost_ws.teamid, won_ws.teamid
---),
+SELECT
+	yearid,--46 rows w/year, 45 wo/year
+	MIN(w) AS wins
+FROM teams
+WHERE yearid >= 1970
+AND yearid NOT IN (1981)
+AND wswin = 'Y'
+GROUP BY yearid 
+ORDER BY wins
 
+----------------------------------------------------------------------------
+-- most wins including the world series - 114 (with and without problem year)
+----------------------------------------------------------------------------
+SELECT
+	yearid,--46 rows
+	MAX(w) AS wins
+FROM teams
+WHERE yearid >= 1970
+AND wswin = 'Y'
+--AND yearid NOT IN (1981, 1994)
+GROUP BY yearid
+ORDER BY wins DESC 
+----------------------------------------------------------------------------
+-- Find problem year-- 1981 with 1389 wins, 1994 with 1599 wins
+----------------------------------------------------------------------------
 SELECT 
-	*,
-	max(win) AS win
-FROM lost_ws 
-GROUP BY lost_ws.teamid, lost_ws.yearid
-
-UNION
+	yearid,
+	SUM(w) AS wins
+FROM teams
+WHERE yearid >= 1970
+GROUP BY yearid
+ORDER BY wins
+---------------------------------------------------------------------------------
+-- Team with the most wins also won the world series? "NYA"	114  
+---------------------------------------------------------------------------------
 SELECT
-	*,
-	min(win) 
-FROM won_ws 
-GROUP BY won_ws.teamid, won_ws.yearid
+	yearid,--45 rows
+	MAX(w) AS wins
+FROM teams
+WHERE yearid >= 1970
+AND yearid NOT IN (1981)
+AND wswin = 'Y'
+GROUP BY yearid
+ORDER BY wins DESC 
 
---UNION ALL
---SELECT * FROM won_all ORDER BY win DESC LIMIT 1
+---------------------------------------------------------------------------------
+-- What percentage of the time
+---------------------------------------------------------------------------------
+WITH most_wins AS(
+SELECT --46 rows
+	yearid,
+	MAX(w) AS w
+FROM teams
+WHERE yearid >= 1970
+AND yearid NOT IN (1981)
+GROUP BY yearid
+ORDER BY w DESC 
+),
+
+most_win_teams AS(
+SELECT --2835 rows
+	yearid,
+	name AS team_name,
+	wswin
+FROM teams
+INNER JOIN most_wins USING (yearid, w)---52 rows
+)
+SELECT 
+	(SELECT
+		COUNT(*) 
+		FROM most_win_teams
+		WHERE wswin = 'N')--39 rows
+		*100/ 
+			(SELECT 
+				COUNT(*)
+			FROM most_win_teams) AS percentage
+;
 --------------------------------------------------------------------------------------------------------
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the 
 --top 5 average attendance per game in 2016 (where average attendance is defined as total attendance
