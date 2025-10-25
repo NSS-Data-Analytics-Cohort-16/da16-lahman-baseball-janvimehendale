@@ -341,67 +341,28 @@ LIMIT 5
 --manager full name
 --team
 --NL and AL
-SELECT
-	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a.lgid AS league,
-	a.yearid AS year
-FROM awardsmanagers a
-INNER JOIN people p USING (playerid)
-WHERE a.awardid = 'TSN Manager of the Year'
-AND lgid IN ('AL')
-UNION --INTERSECT DIDN'T WORK
-SELECT
-	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a1.lgid AS league,
-	a1.yearid AS year
-FROM awardsmanagers a1
-INNER JOIN people p USING (playerid)
-WHERE a1.awardid = 'TSN Manager of the Year'
-AND lgid IN ('NL')
 
-
-
-SELECT
-	CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-	a.yearid AS year,
-	a.lgid AS league,
-	(SELECT
-		a1.yearid AS year,
-		a1.lgid AS league
-		FROM awardsmanagers a1
-	WHERE a1.awardid = 'TSN Manager of the Year'
-	AND a1.lgid IS NOT NULL
-	AND a1.lgid = 'NL') 
-FROM awardsmanagers a
-INNER JOIN people p USING (playerid)
-INNER JOIN awardsmanagers a1 USING (playerid)
-WHERE a.awardid = 'TSN Manager of the Year'
-AND a.lgid IS NOT NULL
-AND a.lgid = 'AL' 
-
-
-WITH league AS(
-SELECT
-		a.playerid,
-		CONCAT(p.namefirst,' ', p.namelast) AS full_name,
-		CASE WHEN a.lgid = 'AL' THEN a.yearid
-			 END AS AL,
-		CASE WHEN a.lgid = 'NL' THEN a.yearid
-			 END AS NL
-		FROM awardsmanagers a
-		INNER JOIN people p USING (playerid)
-		WHERE a.awardid = 'TSN Manager of the Year'
-		AND a.lgid IS NOT NULL
+WITH both_league AS(
+SELECT --2 player ids
+	playerid
+FROM awardsmanagers
+WHERE awardid = 'TSN Manager of the Year'
+AND lgid IN ('AL' ,'NL')
+GROUP BY playerid
+HAVING COUNT(DISTINCT lgid)= 2
 )
-
 SELECT
-	full_name,
-	al,
-	nl
-FROM league 
-WHERE al IS NOT NULL
-OR nl IS NOT NULL
-ORDER BY full_name
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
+	a.yearid,
+	a.lgid,
+	t.name
+FROM people p
+INNER JOIN both_league USING (playerid)
+INNER JOIN awardsmanagers a USING(playerid)
+INNER JOIN managers m USING (playerid,lgid, yearid)
+INNER JOIN teams t USING (teamid,lgid, yearid)
+WHERE awardid = 'TSN Manager of the Year' -- need to mention again to get the correct results
+ORDER by full_name
 
 --------------------------------------------------------------------------------------------------------
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players
@@ -429,7 +390,6 @@ GROUP BY playerid
 SELECT * FROM homegames
 SELECT * FROM appearances
 SELECT * FROM teams
-
 
 
 --------------------------------------------------------------------------------------------------------
