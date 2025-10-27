@@ -391,38 +391,45 @@ GROUP BY playerid, full_name, hr, b.yearid
 ---------------------------------------------------------------------------------
 WITH hr_all AS(
 SELECT-- List of players who scored atleast 1 hr overall career
-	playerid,
+	b.playerid,
 	CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
-	SUM(hr)AS total_runs,
+	SUM(b.hr)AS total_runs,
 	MIN(b.yearid) AS min_year,
-	MAX(b.yearid) AS max_year
+	MAX(b.yearid) AS max_year,
+	MAX(b.yearid) - MIN(b.yearid) AS years_played
 FROM batting b
 INNER JOIN people p USING (playerid)
-WHERE  hr> 0
+WHERE  b.hr> 0
 GROUP BY full_name, playerid
 ),
+year_hr AS(
+		SELECT playerid,
+		MAX(season_hr) AS yearhr
+		FROM (
+		SELECT playerid,
+		yearid, SUM(hr) AS season_hr
+		FROM batting 
+		GROUP BY yearid, playerid
+		) AS season_runs
+		GROUP BY playerid
+),
+--SELECT * FROM year_hr
 hr_2016 AS(
-SELECT 
-	full_name,
-	playerid,
-	hr
-FROM batting
-WHERE hr> 0
-AND yearid = 2016
-GROUP BY playerid, hr, full_name
+	SELECT playerid,
+		   SUM(hr) AS hr2016
+	FROM batting
+	WHERE yearid = 2016
+	GROUP BY playerid
 )
-
 SELECT 
 	hr_all.full_name,
-	hr_all.total_runs,
-	max_year - min_year AS years_played
-FROM hr_all
+	--hr_all.total_runs,
+	hr_2016.hr2016
+	FROM hr_all
 INNER JOIN hr_2016 USING (playerid)
-WHERE max_year - min_year > 10
-
-	
-
-
+INNER JOIN year_hr USING (playerid)
+WHERE hr_all.years_played >=10
+AND hr_2016.hr2016 > yearhr
 
 
 --------------------------------------------------------------------------------------------------------
