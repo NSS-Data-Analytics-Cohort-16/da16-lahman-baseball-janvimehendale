@@ -442,12 +442,92 @@ AND hr_2016.hr2016 >= year_hr.yearhr;
 --answer this question. As you do this analysis, keep in mind that salaries across the whole league 
 --tend to increase together, so you may want to look on a year-by-year basis.
 
+WITH win_sal AS(
+SELECT 
+	t.yearid,
+	--t.lgid,
+	--t.name,
+	t.teamid,
+	SUM(t.w) AS total_wins,
+	SUM(s.salary) AS total_salary
+FROM teams t
+INNER JOIN salaries s
+USING (yearid, teamid)
+WHERE yearid > 2000
+GROUP BY yearid,
+		t.teamid
+		-- s.salary
+ORDER BY teamid, yearid
+)
+SELECT 
+	*,
+	CASE WHEN total_wins > LAG(total_wins) OVER (PARTITION BY teamid ORDER BY yearid) THEN 'more'
+		 WHEN total_wins < LAG(total_wins) OVER (PARTITION BY teamid ORDER BY yearid) THEN 'less'
+	     ELSE 'same' END AS win_analysis,
+	CASE WHEN total_salary > LAG(total_salary) OVER (PARTITION BY teamid ORDER BY yearid) THEN 'increased'
+		 WHEN total_salary < LAG(total_salary) OVER (PARTITION BY teamid ORDER BY yearid) THEN 'decreased'
+	     ELSE 'same' END AS salary_analysis
+FROM win_sal
+ORDER BY teamid, yearid
+
+;---teamwise salary--For some years salary increased when no of wins increased and 
+--viceaversa, but for others it increased regardless of wins
+
+----------------------------------------------------------------------------------------------------
+-- Yearwise salary for all the teams combined
+----------------------------------------------------------------------------------------------------
+WITH win_sal AS(
+	SELECT 
+	t.yearid,
+	--t.lgid,
+	--t.name,
+	--t.teamid,
+	SUM(t.w) AS total_wins,
+	SUM(s.salary) AS total_salary
+FROM teams t
+INNER JOIN salaries s
+USING (yearid, teamid)
+WHERE yearid > 2000
+GROUP BY yearid
+		--t.teamid
+		-- s.salary
+ORDER BY yearid
+)
+SELECT 
+	*,
+	CASE WHEN total_wins > LAG(total_wins) OVER (ORDER BY yearid) THEN 'more_wins'
+		 WHEN total_wins < LAG(total_wins) OVER (ORDER BY yearid) THEN 'less_wins'
+	     ELSE 'same' END AS win_analysis,
+	CASE WHEN total_salary > LAG(total_salary) OVER (ORDER BY yearid) THEN 'salary_increased'
+		 WHEN total_salary < LAG(total_salary) OVER (ORDER BY yearid) THEN 'salary_decreased'
+	     ELSE 'same' END AS salary_analysis
+FROM win_sal
 --------------------------------------------------------------------------------------------------------
 -- 12. In this question, you will explore the connection between number of wins and attendance.
 --   *  Does there appear to be any correlation between attendance at home games and number of wins? </li>
 --   *  Do teams that win the world series see a boost in attendance the following year? What about teams 
 --that made the playoffs? Making the playoffs means either being a division winner or a wild card winner.
 
+---win count
+--attendance
+--homegames
+--wswin
+--playoffs = divwin or wcwin
+SELECT
+	yearid,
+	ghome,
+	wswin,
+	divwin,
+	wcwin,
+	SUM(w) AS wins,
+	SUM(attendance) AS total_attendance
+FROM teams
+GROUP BY yearid, 
+		 ghome,
+		 wswin,
+		 divwin,
+		 wcwin
+ORDER BY yearid
 --------------------------------------------------------------------------------------------------------
 -- 13. It is thought that since left-handed pitchers are more rare, causing batters to face them less 
 --often, that they are more effective. Investigate this claim and present evidence to either support or
@@ -455,6 +535,62 @@ AND hr_2016.hr2016 >= year_hr.yearhr;
 --pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to
 --make it into the hall of fame?
 
---------------------------------------------------------------------------------------------------------
+--count(left pitcher)
+--count(rightpitcher)
+--Cy Young Award
+--hall of fame
+--------------------------------------------------------------------------------------------------
+---Determine how rare left-handed pitchers are compared with right-handed pitchers---
+-- Left 3654 Right 14480 
+--------------------------------------------------------------------------------------------------
+SELECT
+	COUNT(CASE WHEN throws = 'L' THEN 1 END) AS left,
+	COUNT(CASE WHEN throws = 'R' THEN 1 END) AS right	
+FROM people
 
-  
+---------------------------------------------------------------------------------------------------
+--Cy Young Award  -- left 37, right 75 Left handed pitchers are less likely to make it to the award
+---------------------------------------------------------------------------------------------------
+SELECT
+	COUNT(CASE WHEN p.throws = 'L' THEN 1 END) AS left,
+	COUNT(CASE WHEN p.throws = 'R' THEN 1 END) AS right	
+FROM people p
+INNER JOIN awardsplayers a
+USING (playerid)
+WHERE awardid = 'Cy Young Award'
+
+-----------------------------------------------------------------------------------------------------------
+--hall of fame -- left 786, right 3335 Left handed pitchers are less likely to make it to the hall of fame
+-----------------------------------------------------------------------------------------------------------
+SELECT
+	--p.playerid,
+	--CONCAT(p.namefirst, ' ', p.namelast) AS full_name,
+	COUNT(CASE WHEN p.throws = 'L' THEN 1 END) AS left,
+	COUNT(CASE WHEN p.throws = 'R' THEN 1 END) AS right
+FROM people p
+INNER JOIN halloffame h
+USING (playerid)
+---------------------------------------------------------------------------------------------------
+--hall of fame -- right handed 3335 left 786
+---------------------------------------------------------------------------------------------------
+
+
+SELECT 
+	h.playerid,
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name
+FROM halloffame h
+INNER JOIN people p
+USING (playerid)
+WHERE p.throws = 'L'--786 reacords
+GROUP BY playerid, full_name--249 players
+-----------------------------------------------------
+
+SELECT 
+	h.playerid,
+	CONCAT(p.namefirst, ' ', p.namelast) AS full_name
+FROM halloffame h
+INNER JOIN people p
+USING (playerid)
+WHERE p.throws = 'R'--3335 rows
+GROUP BY playerid, full_name--976 players
+-----------------------------------------------------
