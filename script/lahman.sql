@@ -396,7 +396,7 @@ SELECT-- List of players who scored atleast 1 hr overall career
 	SUM(b.hr)AS total_runs,
 	MIN(b.yearid) AS min_year,
 	MAX(b.yearid) AS max_year,
-	MAX(b.yearid) - MIN(b.yearid) AS years_played
+	(MAX(b.yearid) - MIN(b.yearid)+ 1) AS years_played
 FROM batting b
 INNER JOIN people p USING (playerid)
 --WHERE CONCAT(p.namefirst, ' ', p.namelast) = 'Justin Upton'
@@ -426,15 +426,15 @@ hr_2016 AS(--Max scores of 2016
 )
 SELECT 
 	hr_all.full_name,
-	--hr_all.total_runs,
+--	hr_all.total_runs,
 	hr_2016.hr2016
-	--year_hr.yearhr
+--	year_hr.yearhr
 	FROM hr_all
 INNER JOIN hr_2016 USING (playerid)
 INNER JOIN year_hr USING (playerid)
 WHERE  hr_2016.hr2016 > 0
 AND hr_all.years_played >=10
-AND hr_2016.hr2016 >= year_hr.yearhr;
+AND hr_2016.hr2016 >= year_hr.yearhr; -- It is comparing the homeruns scored to max scored in other seasons
 --------------------------------------------------------------------------------------------------------
 -- **Open-ended questions**
 
