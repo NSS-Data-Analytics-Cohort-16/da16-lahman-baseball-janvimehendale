@@ -382,8 +382,8 @@ SELECT
 	b.hr
 FROM batting b
 INNER JOIN people p USING (playerid)
-WHERE  hr> 0
-AND yearid = 2016
+WHERE yearid = 2016 
+--AND hr> 0
 GROUP BY playerid, full_name, hr, b.yearid
 
 ---------------------------------------------------------------------------------
@@ -399,39 +399,42 @@ SELECT-- List of players who scored atleast 1 hr overall career
 	MAX(b.yearid) - MIN(b.yearid) AS years_played
 FROM batting b
 INNER JOIN people p USING (playerid)
-WHERE  b.hr> 0
+--WHERE CONCAT(p.namefirst, ' ', p.namelast) = 'Justin Upton'
 GROUP BY full_name, playerid
 ),
-year_hr AS(
-		SELECT playerid,
+year_hr AS(--Max scores of all the seasons
+		SELECT
+		playerid,
 		MAX(season_hr) AS yearhr
 		FROM (
 		SELECT playerid,
-		yearid, SUM(hr) AS season_hr
+		yearid, 
+		SUM(hr) AS season_hr
 		FROM batting 
 		GROUP BY yearid, playerid
 		) AS season_runs
 		GROUP BY playerid
 ),
 --SELECT * FROM year_hr
-hr_2016 AS(
+hr_2016 AS(--Max scores of 2016
 	SELECT playerid,
 		   SUM(hr) AS hr2016
 	FROM batting
 	WHERE yearid = 2016
 	GROUP BY playerid
+	HAVING SUM(hr)>0
 )
 SELECT 
 	hr_all.full_name,
 	--hr_all.total_runs,
 	hr_2016.hr2016
+	--year_hr.yearhr
 	FROM hr_all
 INNER JOIN hr_2016 USING (playerid)
 INNER JOIN year_hr USING (playerid)
-WHERE hr_all.years_played >=10
-AND hr_2016.hr2016 > yearhr
-
-
+WHERE  hr_2016.hr2016 > 0
+AND hr_all.years_played >=10
+AND hr_2016.hr2016 >= year_hr.yearhr;
 --------------------------------------------------------------------------------------------------------
 -- **Open-ended questions**
 
