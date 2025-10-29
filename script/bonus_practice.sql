@@ -123,14 +123,108 @@ AND birthday IS NOT NULL
 --debut and age at retirement. (Hint: It might be useful to check out the PostgreSQL date and time functions
 --https://www.postgresql.org/docs/8.4/functions-datetime.html).
 
--------------------------------------------------------------------------------------------------------------
---2c. Who is the youngest player to ever play in the major leagues?
+SELECT 
+	full_name,
+	birthdate,
+	debut,
+	finalgame,
+	age.debut_age,
+	age.retirement_age
+FROM(
+	SELECT
+	CONCAT(namefirst, ' ', namelast) AS full_name,
+	TO_DATE(
+		CONCAT(
+		birthyear::text,'-',
+		LPAD(birthmonth::text,2,'0'), '-', 
+		LPAD(birthday::text,2,'0')
+		), 'YYYY-MM-DD') AS birthdate,
+		debut,
+		finalgame
+	FROM people
+	WHERE birthyear IS NOT NULL
+	AND birthmonth IS NOT NULL
+	AND birthday IS NOT NULL
+	) subquery,
+LATERAL (SELECT 
+		 ROUND((TO_DATE(debut,'YYYY-MM-DD') - birthdate + 1)/365.25) AS debut_age, 
+		 ROUND((TO_DATE(finalgame,'YYYY-MM-DD') - birthdate +1)/365.25) AS retirement_age) AS age
 
+-------------------------------------------------------------------------------------------------------------
+--2c. Who is the youngest player to ever play in the major leagues? --"Willie McGill" debut age 16
+SELECT 
+	full_name,
+	birthdate,
+	debut,
+	finalgame,
+	age.debut_age,
+	age.retirement_age,
+	league
+FROM(
+	SELECT
+	playerid,
+	CONCAT(namefirst, ' ', namelast) AS full_name,
+	TO_DATE(
+		CONCAT(
+		birthyear::text,'-',
+		LPAD(birthmonth::text,2,'0'), '-', 
+		LPAD(birthday::text,2,'0')
+		), 'YYYY-MM-DD') AS birthdate,
+		debut,
+		finalgame,
+		appearances.lgid  AS league
+	FROM people
+	INNER JOIN appearances USING (playerid)
+	WHERE birthyear IS NOT NULL
+	AND birthmonth IS NOT NULL
+	AND birthday IS NOT NULL
+	AND appearances.lgid IN ('AA', 'UA', 'PL', 'FL')
+	) subquery,
+LATERAL (SELECT 
+		 ROUND((TO_DATE(debut,'YYYY-MM-DD') - birthdate + 1)/365.25) AS debut_age, 
+		 ROUND((TO_DATE(finalgame,'YYYY-MM-DD') - birthdate +1)/365.25) AS retirement_age) AS age
+GROUP BY full_name, birthdate, debut, finalgame, debut_age, retirement_age, league
+ORDER BY age.debut_age
 -------------------------------------------------------------------------------------------------------------
 -- 2d. Who is the oldest player to player in the major leagues? You'll likely have a lot of null values
 --resulting in your age at retirement calculation. Check out the documentation on sorting rows here
 --https://www.postgresql.org/docs/8.3/queries-order.html about how you can change how null values are sorted.
 
+-- "Charlie Miller" debut age 38
+
+SELECT 
+	full_name,
+	birthdate,
+	debut,
+	finalgame,
+	age.debut_age,
+	age.retirement_age,
+	league
+FROM(
+	SELECT
+	playerid,
+	CONCAT(namefirst, ' ', namelast) AS full_name,
+	TO_DATE(
+		CONCAT(
+		birthyear::text,'-',
+		LPAD(birthmonth::text,2,'0'), '-', 
+		LPAD(birthday::text,2,'0')
+		), 'YYYY-MM-DD') AS birthdate,
+		debut,
+		finalgame,
+		appearances.lgid  AS league
+	FROM people
+	INNER JOIN appearances USING (playerid)
+	WHERE birthyear IS NOT NULL
+	AND birthmonth IS NOT NULL
+	AND birthday IS NOT NULL
+	AND appearances.lgid IN ('AA', 'UA', 'PL', 'FL')
+	) subquery,
+LATERAL (SELECT 
+		 ROUND((TO_DATE(debut,'YYYY-MM-DD') - birthdate + 1)/365.25) AS debut_age, 
+		 ROUND((TO_DATE(finalgame,'YYYY-MM-DD') - birthdate +1)/365.25) AS retirement_age) AS age
+GROUP BY full_name, birthdate, debut, finalgame, debut_age, retirement_age, league
+ORDER BY age.debut_age DESC NULLS LAST
 -------------------------------------------------------------------------------------------------------------
 -- For this question, you will want to make use of RECURSIVE CTEs 
 --(see https://www.postgresql.org/docs/13/queries-with.html). 
