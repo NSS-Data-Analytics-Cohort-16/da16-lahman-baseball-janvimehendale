@@ -241,12 +241,59 @@ ORDER BY age.debut_age DESC NULLS LAST
 -- 3a. Willie Mays holds the record of the most All Star Game starts with 18. How many players started in an
 --All Star Game with Willie Mays? (A player started an All Star Game if they appear in the allstarfull table 
 --with a non-null startingpos value).
+-----------------------------------------------------------------------------------------------
+---Find the player id of Willie Mays ----"mayswi01"
+-----------------------------------------------------------------------------------------------
+SELECT 
+	playerid,
+	namefirst,
+	namelast,
+FROM people
+WHERE namefirst = 'Willie'
+AND namelast = 'Mays'
+
+SELECT * FROM allstarfull
+
+---------------------------------------------------------------------------------------------------
+
+WITH RECURSIVE williemays AS(
+SELECT -- Willie Mays start_year = 1957
+	a.playerid,
+	p.namefirst,
+	p.namelast,
+	MIN(a.yearid) AS start_year,
+	a.startingpos
+FROM allstarfull a
+INNER JOIN people p
+USING (playerid)
+WHERE startingpos IS NOT NULL
+AND playerid = 'mayswi01'
+GROUP BY playerid, namefirst, namelast, startingpos
+UNION ALL
+SELECT --All other players who started in the year 1957
+	a1.playerid,
+	p1.namefirst,
+	p1.namelast,
+	MIN(a1.yearid) AS start_year,
+	a1.startingpos
+FROM allstarfull a1
+INNER JOIN people p1
+USING (playerid)
+INNER JOIN a 
+USING (yearid)
+WHERE a1.startingpos IS NOT NULL
+AND a1.playerid <> 'mayswi01'
+AND a1.yearid = a.start_year
+GROUP BY playerid, namefirst, namelast, startingpos
+)
+SELECT * FROM williemays
 -------------------------------------------------------------------------------------------------------------
 
 --3b. How many players didn't start in an All Star Game with Willie Mays but started an All Star Game with
 --another player who started an All Star Game with Willie Mays? For example, Graig Nettles never started an
 --All Star Game with Willie Mayes, but he did star the 1975 All Star Game with Blue Vida who started the 
 --1971 All Star Game with Willie Mays.
+
 
 -------------------------------------------------------------------------------------------------------------
 -- 3c. We'll call two players connected if they both started in the same All Star Game. Using this, 
