@@ -137,12 +137,12 @@ ORDER BY total_salary DESC;
 SELECT 
 CASE WHEN pos = 'OF' THEN 'Outfield'
 	 WHEN pos IN ('P', 'C') THEN 'Battery'
-	 ELSE 'Infield' END AS position,
+	 WHEN pos IN ('SS', '1B', '2B', '3B') THEN 'Infield' 
+	 ELSE 'missing' END AS position,
 	 SUM(po) AS total_putouts
 FROM fielding
 WHERE yearid = 2016
 GROUP BY position
-
 --------------------------------------------------------------------------------------------------------
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report
 --to 2 decimal places. Do the same for home runs per game. Do you see any trends?
@@ -319,7 +319,7 @@ SELECT
 --parks
 --games =>10
 
-SELECT 
+(SELECT 
 	--(SELECT park_name FROM parks),
 	p.park_name,
 	h.attendance,
@@ -332,7 +332,24 @@ INNER JOIN teams t ON t.teamidlahman45 = h.team AND t.yearid = h.year
 WHERE h.year = 2016
 AND games >=10
 ORDER BY attendance_per_game DESC
-LIMIT 5
+LIMIT 5)
+
+UNION
+
+(SELECT 
+	--(SELECT park_name FROM parks),
+	p.park_name,
+	h.attendance,
+	t.name,
+	h.games,
+	h.attendance/ h.games AS attendance_per_game
+FROM homegames h
+INNER JOIN parks p ON p.park = h.park
+INNER JOIN teams t ON t.teamidlahman45 = h.team AND t.yearid = h.year
+WHERE h.year = 2016
+AND games >=10
+ORDER BY attendance_per_game ASC
+LIMIT 5)
 ------------------------------------------------------------------------------------------------------
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and
 --the American League (AL)? Give their full name and the teams that they were managing when they won 
@@ -593,4 +610,4 @@ INNER JOIN people p
 USING (playerid)
 WHERE p.throws = 'R'--3335 rows
 GROUP BY playerid, full_name--976 players
------------------------------------------------------
+----------------------------------------------------------------
