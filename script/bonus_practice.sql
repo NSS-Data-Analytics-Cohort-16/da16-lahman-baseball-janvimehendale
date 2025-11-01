@@ -279,14 +279,16 @@ SELECT --All other players who started in the year 1957
 FROM allstarfull a1
 INNER JOIN people p1
 USING (playerid)
-INNER JOIN a 
+INNER JOIN williemays
 USING (yearid)
 WHERE a1.startingpos IS NOT NULL
 AND a1.playerid <> 'mayswi01'
-AND a1.yearid = a.start_year
+AND a1.yearid = williemays.start_year
 GROUP BY playerid, namefirst, namelast, startingpos
 )
 SELECT * FROM williemays
+
+
 -------------------------------------------------------------------------------------------------------------
 
 --3b. How many players didn't start in an All Star Game with Willie Mays but started an All Star Game with
